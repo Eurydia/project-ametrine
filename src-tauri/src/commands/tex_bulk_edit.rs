@@ -12,7 +12,7 @@ pub async fn replace_tex_string(
 }
 
 #[tauri::command]
-async fn get_tex_marker_key(tex_string: String) -> Result<Vec<String>, &'static str> {
+pub async fn get_tex_marker_key(tex_string: String) -> Result<Vec<String>, &'static str> {
     let tokens = lex_string(tex_string);
     return Ok(get_marker_keys(tokens));
 }

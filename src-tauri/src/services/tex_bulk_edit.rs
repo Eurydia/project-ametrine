@@ -1,14 +1,17 @@
 use std::collections::HashMap;
 
-#[derive(Debug)]
+use serde::Serialize;
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "kind")]
 pub enum TokenKind {
-    TexChar(char),
-    Marker(String),
+    TexChar { c: char },
+    Marker { key: String },
 }
 
 fn flush_buffer_as_chars(tokens_vec: &mut Vec<TokenKind>, char_buffer: &Vec<char>) {
     for buffer_ch in char_buffer {
-        tokens_vec.push(TokenKind::TexChar(buffer_ch.clone()));
+        tokens_vec.push(TokenKind::TexChar { c: *buffer_ch });
     }
 }
 
@@ -88,10 +91,10 @@ pub fn lex_string(src: String) -> Vec<TokenKind> {
                     continue 'src;
                 }
 
-                tokens.push(TokenKind::Marker(marker_key));
+                tokens.push(TokenKind::Marker { key: marker_key });
             }
 
-            _ => tokens.push(TokenKind::TexChar(stream_ch)),
+            _ => tokens.push(TokenKind::TexChar { c: stream_ch }),
         }
     }
     return tokens;
@@ -105,11 +108,11 @@ pub fn replace_string(
 
     for token in tokens {
         match token {
-            TokenKind::TexChar(ch) => {
-                repalced_string.push(ch);
+            TokenKind::TexChar { c } => {
+                repalced_string.push(c);
             }
-            TokenKind::Marker(marker_key) => {
-                let Some(marker_value) = replacements.get(&marker_key) else {
+            TokenKind::Marker { key } => {
+                let Some(marker_value) = replacements.get(&key) else {
                     return None;
                 };
                 repalced_string.push_str(marker_value);
@@ -124,8 +127,8 @@ pub fn get_marker_keys(tokens: Vec<TokenKind>) -> Vec<String> {
     let mut keys = vec![];
     for token in tokens {
         match token {
-            TokenKind::Marker(marker_key) => {
-                keys.push(marker_key);
+            TokenKind::Marker { key } => {
+                keys.push(key);
             }
             _ => {}
         }

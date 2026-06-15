@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use serde::Serialize;
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "kind")]

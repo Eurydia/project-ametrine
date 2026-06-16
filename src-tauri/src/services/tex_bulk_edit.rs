@@ -1,42 +1,37 @@
 use serde::Serialize;
-use std::collections::HashMap;
+use serde_json::map::Entry;
+use std::{collections::HashMap, marker, ops::Add, string};
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "kind")]
 pub enum TokenKind {
-    TexChar { c: char },
+    TexString { content: String },
     Marker { key: String },
 }
 
-fn flush_buffer_as_chars(tokens_vec: &mut Vec<TokenKind>, char_buffer: &Vec<char>) {
-    for buffer_ch in char_buffer {
-        tokens_vec.push(TokenKind::TexChar { c: *buffer_ch });
-    }
-}
-
-fn consume_expected<I>(src_stream: &mut I, buffer: &mut Vec<char>, expected: char) -> bool
+fn consume_expected<I>(src_stream: &mut I, string_buffer: &mut String, expected: char) -> bool
 where
     I: Iterator<Item = char>,
 {
     match src_stream.next() {
         Some(ch) if ch == expected => {
-            buffer.push(ch);
+            string_buffer.push(ch);
             return true;
         }
         Some(ch) => {
-            buffer.push(ch);
+            string_buffer.push(ch);
             return false;
         }
         None => return false,
     };
 }
 
-fn consume_sequence<I>(src_stream: &mut I, buffer: &mut Vec<char>, expected: &str) -> bool
+fn consume_sequence<I>(src_stream: &mut I, string_buffer: &mut String, expected: &str) -> bool
 where
     I: Iterator<Item = char>,
 {
     for expected_ch in expected.chars() {
-        if !consume_expected(src_stream, buffer, expected_ch) {
+        if !consume_expected(src_stream, string_buffer, expected_ch) {
             return false;
         }
     }
@@ -46,56 +41,52 @@ where
 
 pub fn lex_string(src: String) -> Vec<TokenKind> {
     let mut tokens = vec![];
-
+    let mut string_buffer = String::new();
     let mut src_stream = src.chars().peekable();
 
-    'src: while let Some(stream_ch) = src_stream.next() {
-        match stream_ch {
-            '<' => {
-                let mut buffer = vec![];
-
-                buffer.push(stream_ch);
-
-                if !consume_sequence(&mut src_stream, &mut buffer, "<<(") {
-                    flush_buffer_as_chars(&mut tokens, &buffer);
-                    continue 'src;
-                }
-
-                let mut marker_key = String::new();
-
-                loop {
-                    match src_stream.next() {
-                        Some(ch) if ch == ')' => {
-                            buffer.push(ch);
-                            break;
-                        }
-                        Some(ch) => {
-                            marker_key.push(ch);
-                            buffer.push(ch);
-                        }
-                        None => {
-                            flush_buffer_as_chars(&mut tokens, &buffer);
-                            return tokens;
-                        }
-                    }
-                }
-
-                if !consume_sequence(&mut src_stream, &mut buffer, ">>>") {
-                    flush_buffer_as_chars(&mut tokens, &buffer);
-                    continue 'src;
-                }
-
-                if marker_key.is_empty() {
-                    flush_buffer_as_chars(&mut tokens, &buffer);
-                    continue 'src;
-                }
-
-                tokens.push(TokenKind::Marker { key: marker_key });
-            }
-
-            _ => tokens.push(TokenKind::TexChar { c: stream_ch }),
+    while src_stream.peek().is_some() {
+        let mut start_marker_buffer = String::new();
+        if !consume_sequence(&mut src_stream, &mut start_marker_buffer, "<<<(") {
+            string_buffer.push_str(&start_marker_buffer);
+            continue;
         }
+
+        let mut marker_key = String::new();
+
+        while let Some(&ch) = src_stream.peek() {
+            src_stream.next();
+            if ch == ')' {
+                break;
+            }
+            marker_key.push(ch);
+        }
+
+        if marker_key.is_empty() {
+            string_buffer.push(')');
+            continue;
+        }
+
+        let mut end_marker_buffer = String::new();
+
+        if !consume_sequence(&mut src_stream, &mut end_marker_buffer, ">>>") {
+            string_buffer.push_str(&marker_key);
+            string_buffer.push_str(&end_marker_buffer);
+            continue;
+        }
+
+        tokens.push(TokenKind::TexString {
+            content: string_buffer.clone(),
+        });
+        string_buffer.clear();
+        tokens.push(TokenKind::Marker { key: marker_key });
     }
+
+    if !string_buffer.is_empty() {
+        tokens.push(TokenKind::TexString {
+            content: string_buffer,
+        });
+    }
+
     return tokens;
 }
 
@@ -107,8 +98,8 @@ pub fn replace_string(
 
     for token in tokens {
         match token {
-            TokenKind::TexChar { c } => {
-                repalced_string.push(c);
+            TokenKind::TexString { content } => {
+                repalced_string.push_str(content.as_str());
             }
             TokenKind::Marker { key } => {
                 let Some(marker_value) = replacements.get(&key) else {
@@ -122,12 +113,13 @@ pub fn replace_string(
     return Some(repalced_string);
 }
 
-pub fn get_marker_keys(tokens: Vec<TokenKind>) -> Vec<String> {
-    let mut keys = vec![];
+pub fn get_marker_keys(tokens: Vec<TokenKind>) -> HashMap<String, i32> {
+    let mut keys = HashMap::new();
     for token in tokens {
         match token {
             TokenKind::Marker { key } => {
-                keys.push(key);
+                let occurences = keys.entry(key).or_insert(0);
+                *occurences += 1;
             }
             _ => {}
         }

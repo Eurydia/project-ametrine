@@ -1,10 +1,13 @@
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import TabContext from "@mui/lab/TabContext";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
@@ -39,21 +42,25 @@ function RouteComponent() {
       {
         fileData: { name: string; content: string; path: string };
         tokens: Array<TokenKind>;
-        markers: Record<string, number>;
+        markers: Record<string, number | undefined>;
       }
     >
   >({});
 
   const [currentFilePath, setCurrentFilePath] = useState<
-    keyof typeof fileLookup | null
-  >(null);
+    keyof typeof fileLookup | ""
+  >("");
 
   const activeFile = useMemo(() => {
-    if (currentFilePath === null) {
+    if (currentFilePath === "") {
       return null;
     }
     return fileLookup[currentFilePath] ?? null;
   }, [currentFilePath, fileLookup]);
+
+  const fileArrays = useMemo(() => {
+    return Array.from(Object.values(fileLookup));
+  }, [fileLookup]);
 
   const form = useForm({
     defaultValues: {
@@ -200,7 +207,7 @@ function RouteComponent() {
                                   {`<<<(${value.markerKey})>>>`}
                                 </Typography>
                                 {activeFile !== null && (
-                                  <Typography>{`(${activeFile.markers[value.markerKey]} occurences in this file)`}</Typography>
+                                  <Typography>{`(${activeFile.markers[value.markerKey] ?? "none"} present in this file)`}</Typography>
                                 )}
                               </Stack>
                               <Stack direction={"row"}>
@@ -216,7 +223,9 @@ function RouteComponent() {
                                           marker: value.markerKey,
                                           order:
                                             (prev.order + 1) %
-                                            activeFile.markers[value.markerKey],
+                                            (activeFile.markers[
+                                              value.markerKey
+                                            ] ?? 1),
                                         };
                                       }
                                       return {
@@ -283,6 +292,23 @@ function RouteComponent() {
         </Paper>
       </Grid>
       <Grid size={{ lg: 8 }} sx={{ overflow: "auto", maxHeight: "100dvh" }}>
+        <Tabs
+          value={currentFilePath}
+          onChange={(_, v) => setCurrentFilePath(v)}
+          slotProps={{
+            list: { sx: { flexWrap: "wrap" } },
+          }}
+        >
+          {fileArrays.map((file) => {
+            return (
+              <Tab
+                key={file.fileData.path}
+                label={file.fileData.name}
+                value={file.fileData.path}
+              />
+            );
+          })}
+        </Tabs>
         {activeFile !== null && (
           <Stack>
             <Toolbar

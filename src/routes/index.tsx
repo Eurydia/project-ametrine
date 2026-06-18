@@ -1,6 +1,6 @@
+import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import TabContext from "@mui/lab/TabContext";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
@@ -17,7 +17,7 @@ import { useSelector } from "@tanstack/react-store";
 import { basename, documentDir, extname } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
-import { act, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   getMarkerKeys,
   getTokens,
@@ -96,8 +96,12 @@ function RouteComponent() {
 
   return (
     <Grid container>
-      <Grid size={{ lg: 4 }} sx={{ overflow: "auto" }}>
-        <Paper variant="elevation" elevation={0} sx={{ padding: 2 }}>
+      <Grid size={{ lg: 4 }}>
+        <Paper
+          variant="elevation"
+          elevation={0}
+          sx={{ padding: 2, height: "100vh", overflow: "auto" }}
+        >
           <Stack spacing={4}>
             <Toolbar
               variant="dense"
@@ -105,6 +109,7 @@ function RouteComponent() {
               sx={{ justifyContent: "space-between" }}
             >
               <Button
+                disableTouchRipple
                 variant="contained"
                 onClick={async () => {
                   const items = await open({
@@ -148,6 +153,9 @@ function RouteComponent() {
                 OPEN FILES
               </Button>
               <Button
+                disabled={fileArrays.length === 0}
+                disableTouchRipple
+                variant="outlined"
                 onClick={async () => {
                   const dir = await open({
                     directory: true,
@@ -196,36 +204,38 @@ function RouteComponent() {
                               variant="dense"
                               sx={{ justifyContent: "space-between" }}
                             >
-                              <Stack direction={"row"} spacing={0.5} useFlexGap>
-                                <Typography
-                                  sx={{
-                                    fontFamily: "monospace",
-                                    fontWeight: 700,
-                                  }}
-                                  color="primary"
-                                >
-                                  {`<<<(${value.markerKey})>>>`}
-                                </Typography>
-                                {activeFile !== null && (
-                                  <Typography>{`(${activeFile.markers[value.markerKey] ?? "none"} present in this file)`}</Typography>
-                                )}
-                              </Stack>
+                              <Typography
+                                sx={{
+                                  fontFamily: "monospace",
+                                  fontWeight: 700,
+                                }}
+                                color="primary"
+                              >
+                                {`<<<(${value.markerKey})>>>`}
+                              </Typography>
                               <Stack direction={"row"}>
                                 <IconButton
                                   onClick={() => {
+                                    if (activeFile === null) {
+                                      return;
+                                    }
+
+                                    const occurenceCount =
+                                      activeFile.markers[value.markerKey];
+
+                                    if (occurenceCount === undefined) {
+                                      return;
+                                    }
+
                                     setHighlightedMarker((prev) => {
                                       if (
                                         prev !== null &&
-                                        prev.marker === value.markerKey &&
-                                        activeFile !== null
+                                        prev.marker === value.markerKey
                                       ) {
                                         return {
                                           marker: value.markerKey,
                                           order:
-                                            (prev.order + 1) %
-                                            (activeFile.markers[
-                                              value.markerKey
-                                            ] ?? 1),
+                                            (prev.order + 1) % occurenceCount,
                                         };
                                       }
                                       return {
@@ -239,6 +249,16 @@ function RouteComponent() {
                                 </IconButton>
                                 <IconButton
                                   onClick={() => {
+                                    if (activeFile === null) {
+                                      return;
+                                    }
+                                    const occurenceCount =
+                                      activeFile.markers[value.markerKey];
+
+                                    if (occurenceCount === undefined) {
+                                      return;
+                                    }
+
                                     setHighlightedMarker((prev) => {
                                       if (
                                         prev !== null &&
@@ -249,9 +269,7 @@ function RouteComponent() {
                                           marker: value.markerKey,
                                           order:
                                             (prev.order === 0
-                                              ? activeFile.markers[
-                                                  value.markerKey
-                                                ]
+                                              ? occurenceCount
                                               : prev.order) - 1,
                                         };
                                       }
@@ -295,40 +313,72 @@ function RouteComponent() {
         <Tabs
           value={currentFilePath}
           onChange={(_, v) => setCurrentFilePath(v)}
+          sx={{
+            overflow: "visible",
+          }}
           slotProps={{
-            list: { sx: { flexWrap: "wrap" } },
+            scroller: {
+              sx: {
+                overflow: "visible",
+                whiteSpace: "normal",
+              },
+            },
+            list: {
+              sx: {
+                flexWrap: "wrap",
+                alignItems: "flex-start",
+              },
+            },
+            indicator: {
+              sx: {
+                display: "none",
+              },
+            },
           }}
         >
           {fileArrays.map((file) => {
+            const selected = currentFilePath === file.fileData.path;
             return (
               <Tab
+                disableTouchRipple
                 key={file.fileData.path}
                 label={file.fileData.name}
                 value={file.fileData.path}
+                sx={{
+                  whiteSpace: "nowrap",
+                  maxWidth: "none",
+                  minWidth: "auto",
+                  flexShrink: 0,
+                  borderBottom: "2px solid",
+                  borderBottomColor:(t) =>
+                    selected ? t.palette.primary.main :  "transparent",
+                  color: (t) =>
+                    selected ? t.palette.primary.main : t.palette.text.primary,
+                }}
+                icon={
+                  <CloseIcon
+                    component={"span"}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setFileLookup((prev) => {
+                        const { [file.fileData.path]: _, ...next } = prev;
+                        return next;
+                      });
+                    }}
+                  />
+                }
+                iconPosition="end"
               />
             );
           })}
         </Tabs>
         {activeFile !== null && (
-          <Stack>
-            <Toolbar
-              sx={{
-                justifyContent: "center",
-                borderBottom: "1px solid black",
-              }}
-              disableGutters
-              variant="dense"
-            >
-              <Typography component={"pre"} sx={{ fontFamily: "monospace" }}>
-                {activeFile.fileData.name}
-              </Typography>
-            </Toolbar>
-            <TexFilePreview
-              highlight={highlightedMarker ?? undefined}
-              tokens={activeFile.tokens}
-              replacements={markerReplacements}
-            />
-          </Stack>
+          <TexFilePreview
+            highlight={highlightedMarker ?? undefined}
+            tokens={activeFile.tokens}
+            replacements={markerReplacements}
+          />
         )}
       </Grid>
     </Grid>

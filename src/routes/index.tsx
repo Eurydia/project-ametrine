@@ -1,7 +1,7 @@
-import Box from "@mui/material/Box"
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
@@ -42,7 +42,7 @@ function RouteComponent() {
     Record<
       Path,
       {
-        fileData: { name: string; content: string; path: string };
+        fileData: { name: string; path: string };
         tokens: Array<TokenKind>;
         markers: Record<string, number | undefined>;
       }
@@ -136,7 +136,6 @@ function RouteComponent() {
                           {
                             fileData: {
                               name: await basename(filePath),
-                              content,
                               path: filePath,
                             },
                             tokens: await getTokens(content),
@@ -388,7 +387,7 @@ function RouteComponent() {
             );
           })}
         </Tabs>
-        <Box>
+        <Box sx={}>
           {activeFile !== null && (
             <TexFilePreview
               highlight={highlightedMarker ?? undefined}

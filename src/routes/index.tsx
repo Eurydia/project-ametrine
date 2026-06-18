@@ -1,3 +1,4 @@
+import Box from "@mui/material/Box"
 import CloseIcon from "@mui/icons-material/Close";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
@@ -18,6 +19,7 @@ import { basename, documentDir, extname } from "@tauri-apps/api/path";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "react-toastify";
 import {
   getMarkerKeys,
   getTokens,
@@ -125,29 +127,42 @@ function RouteComponent() {
                     return;
                   }
 
-                  const next = await Promise.all(
-                    items.map(async (filePath) => {
-                      const content = await readTextFile(filePath);
-                      return [
-                        filePath,
-                        {
-                          fileData: {
-                            name: await basename(filePath),
-                            content,
-                            path: filePath,
+                  const next = (
+                    await Promise.all(
+                      items.map(async (filePath) => {
+                        const content = await readTextFile(filePath);
+                        return [
+                          filePath,
+                          {
+                            fileData: {
+                              name: await basename(filePath),
+                              content,
+                              path: filePath,
+                            },
+                            tokens: await getTokens(content),
+                            markers: await getMarkerKeys(content),
                           },
-                          tokens: await getTokens(content),
-                          markers: await getMarkerKeys(content),
-                        },
-                      ];
-                    }),
-                  );
+                        ] as const;
+                      }),
+                    )
+                  ).filter(([_, file]) => {
+                    return Object.values(file.markers).some((val) => val > 0);
+                  });
 
-                  setFileLookup((prev) => ({
-                    ...prev,
-                    ...Object.fromEntries(next),
-                  }));
-                  setCurrentFilePath(items[0]);
+                  if (next.length < items.length) {
+                    toast.warning(
+                      "One or more files were not opened because they did not contain a placeholder.",
+                    );
+                  }
+
+                  const firstFile = next.at(0);
+                  if (firstFile !== undefined) {
+                    setFileLookup((prev) => ({
+                      ...prev,
+                      ...Object.fromEntries(next),
+                    }));
+                    setCurrentFilePath(firstFile[0]);
+                  }
                 }}
               >
                 OPEN FILES
@@ -350,8 +365,8 @@ function RouteComponent() {
                   minWidth: "auto",
                   flexShrink: 0,
                   borderBottom: "2px solid",
-                  borderBottomColor:(t) =>
-                    selected ? t.palette.primary.main :  "transparent",
+                  borderBottomColor: (t) =>
+                    selected ? t.palette.primary.main : "transparent",
                   color: (t) =>
                     selected ? t.palette.primary.main : t.palette.text.primary,
                 }}
@@ -373,13 +388,15 @@ function RouteComponent() {
             );
           })}
         </Tabs>
-        {activeFile !== null && (
-          <TexFilePreview
-            highlight={highlightedMarker ?? undefined}
-            tokens={activeFile.tokens}
-            replacements={markerReplacements}
-          />
-        )}
+        <Box>
+          {activeFile !== null && (
+            <TexFilePreview
+              highlight={highlightedMarker ?? undefined}
+              tokens={activeFile.tokens}
+              replacements={markerReplacements}
+            />
+          )}
+        </Box>
       </Grid>
     </Grid>
   );

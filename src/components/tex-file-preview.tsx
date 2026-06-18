@@ -1,8 +1,5 @@
-import EditIcon from "@mui/icons-material/Edit";
-import Stack from "@mui/material/Stack";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { type FC, Fragment, useEffect } from "react";
+import { type FC, useEffect } from "react";
 import type { TokenKind } from "../api/tex-builk-edit";
 
 export const TexFilePreview: FC<{

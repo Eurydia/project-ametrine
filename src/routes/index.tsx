@@ -387,7 +387,7 @@ function RouteComponent() {
             );
           })}
         </Tabs>
-        <Box sx={}>
+        <Box sx={{ padding: 2 }}>
           {activeFile !== null && (
             <TexFilePreview
               highlight={highlightedMarker ?? undefined}

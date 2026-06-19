@@ -39,17 +39,6 @@ pub async fn list_questions(
 }
 
 #[tauri::command]
-pub async fn get_question(
-    state: tauri::State<'_, DbState>,
-    id: i32,
-) -> Result<Option<question::Model>, String> {
-    question::Entity::find_by_id(id)
-        .one(&state.db)
-        .await
-        .map_err(|err| err.to_string())
-}
-
-#[tauri::command]
 pub async fn update_question(
     state: tauri::State<'_, DbState>,
     input: UpdateQuestionInput,

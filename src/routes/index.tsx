@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import IconButton from "@mui/material/IconButton";
+import InputAdornment from "@mui/material/InputAdornment";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
@@ -25,6 +26,8 @@ import {
   getTokens,
   type TokenKind,
 } from "../api/tex-builk-edit";
+import { QuestionBankDialog } from "../components/question-bank-dialog";
+import { QuestionDialog } from "../components/question-dialog";
 import { TexFilePreview } from "../components/tex-file-preview";
 
 export const Route = createFileRoute("/")({
@@ -87,6 +90,10 @@ function RouteComponent() {
     });
   }, [fileLookup, form.setFieldValue]);
 
+  useEffect(() => {
+    setCurrentFilePath(fileArrays.at(0)?.fileData.path ?? "");
+  }, [fileArrays]);
+
   const markerReplacements = useSelector(form.store, ({ values }) => {
     return Object.fromEntries(
       values.replacements.map(({ markerKey, replacement }) => [
@@ -105,114 +112,121 @@ function RouteComponent() {
           sx={{ padding: 2, height: "100vh", overflow: "auto" }}
         >
           <Stack spacing={4}>
-            <Toolbar
-              variant="dense"
-              disableGutters
-              sx={{ justifyContent: "space-between" }}
+            <Stack
+              direction={"row"}
+              spacing={1}
+              useFlexGap
+              sx={{ justifyContent: "space-between", flexWrap: "wrap" }}
             >
-              <Button
-                disableTouchRipple
-                variant="contained"
-                onClick={async () => {
-                  const items = await open({
-                    title: "Select TeX documents to open",
-                    directory: false,
-                    multiple: true,
-                    fileAccessMode: "copy",
-                    filters: [{ extensions: ["tex"], name: "TeX" }],
-                    pickerMode: "document",
-                  });
+              <Stack spacing={1} direction={"row"}>
+                <Button
+                  disableTouchRipple
+                  variant="contained"
+                  onClick={async () => {
+                    const items = await open({
+                      title: "Select TeX documents to open",
+                      directory: false,
+                      multiple: true,
+                      fileAccessMode: "copy",
+                      filters: [{ extensions: ["tex"], name: "TeX" }],
+                      pickerMode: "document",
+                    });
 
-                  if (items === null || items.length === 0) {
-                    return;
-                  }
+                    if (items === null || items.length === 0) {
+                      return;
+                    }
 
-                  const next = (
-                    await Promise.all(
-                      items.map(async (filePath) => {
-                        const content = await readTextFile(filePath);
-                        return [
-                          filePath,
-                          {
-                            fileData: {
-                              name: await basename(filePath),
-                              path: filePath,
+                    const next = (
+                      await Promise.all(
+                        items.map(async (filePath) => {
+                          const content = await readTextFile(filePath);
+                          return [
+                            filePath,
+                            {
+                              fileData: {
+                                name: await basename(filePath),
+                                path: filePath,
+                              },
+                              tokens: await getTokens(content),
+                              markers: await getMarkerKeys(content),
                             },
-                            tokens: await getTokens(content),
-                            markers: await getMarkerKeys(content),
-                          },
-                        ] as const;
-                      }),
-                    )
-                  ).filter(([_, file]) => {
-                    return Object.values(file.markers).some((val) => val > 0);
-                  });
+                          ] as const;
+                        }),
+                      )
+                    ).filter(([_, file]) => {
+                      return Object.values(file.markers).some((val) => val > 0);
+                    });
 
-                  if (next.length < items.length) {
-                    toast.warning(
-                      "One or more files were not opened because they did not contain a placeholder.",
-                    );
-                  }
-
-                  const firstFile = next.at(0);
-                  if (firstFile !== undefined) {
-                    setFileLookup((prev) => ({
-                      ...prev,
-                      ...Object.fromEntries(next),
-                    }));
-                    setCurrentFilePath(firstFile[0]);
-                  }
-                }}
-              >
-                OPEN FILES
-              </Button>
-              <Button
-                disabled={fileArrays.length === 0}
-                disableTouchRipple
-                variant="outlined"
-                onClick={async () => {
-                  const dir = await open({
-                    directory: true,
-                    title: "Select directory to save the modified files",
-                    multiple: false,
-                    recursive: false,
-                    defaultPath: await documentDir(),
-                  });
-
-                  Promise.all(
-                    Object.values(fileLookup).map(async (file) => {
-                      writeTextFile(
-                        `${dir}/${await basename(file.fileData.name, ".tex")}-modified.${await extname(file.fileData.name)}`,
-                        file.tokens
-                          .map((tok) => {
-                            if (tok.kind === "TexString") {
-                              return tok.content;
-                            }
-                            return (
-                              markerReplacements[tok.key] ||
-                              `<<<(${tok.key})>>>`
-                            );
-                          })
-                          .join(""),
+                    if (next.length < items.length) {
+                      toast.warning(
+                        "One or more files were not opened because they did not contain a placeholder.",
                       );
-                    }),
-                  );
-                }}
-              >
-                SAVE FILES
-              </Button>
-            </Toolbar>
+                    }
+
+                    const firstFile = next.at(0);
+                    if (firstFile !== undefined) {
+                      setFileLookup((prev) => ({
+                        ...prev,
+                        ...Object.fromEntries(next),
+                      }));
+                      setCurrentFilePath(firstFile[0]);
+                    }
+                  }}
+                >
+                  OPEN FILES
+                </Button>
+                <Button
+                  disabled={fileArrays.length === 0}
+                  disableTouchRipple
+                  variant="outlined"
+                  onClick={async () => {
+                    const dir = await open({
+                      directory: true,
+                      title: "Select directory to save the modified files",
+                      multiple: false,
+                      recursive: false,
+                      defaultPath: await documentDir(),
+                    });
+
+                    Promise.all(
+                      Object.values(fileLookup).map(async (file) => {
+                        writeTextFile(
+                          `${dir}/${await basename(file.fileData.name, ".tex")}-modified.${await extname(file.fileData.name)}`,
+                          file.tokens
+                            .map((tok) => {
+                              if (tok.kind === "TexString") {
+                                return tok.content;
+                              }
+                              return (
+                                markerReplacements[tok.key] ||
+                                `<<<(${tok.key})>>>`
+                              );
+                            })
+                            .join(""),
+                        );
+                      }),
+                    );
+                  }}
+                >
+                  SAVE FILES
+                </Button>
+              </Stack>
+              <QuestionBankDialog>
+                {({ openDialog }) => (
+                  <Button variant="outlined" onClick={openDialog}>
+                    OPEN QUESTION BANK
+                  </Button>
+                )}
+              </QuestionBankDialog>
+            </Stack>
             <form.Field name="replacements" mode="array">
               {(f) => (
-                <Stack spacing={2}>
+                <Stack spacing={3}>
                   {f.state.value.map((_, i) => (
-                    <form.Field
-                      name={`replacements[${i}]`}
-                      key={`replacements[${i}]`}
-                    >
+                    <form.Field name={`replacements[${i}]`} key={i}>
                       {({ state: { value }, handleBlur, handleChange }) => {
                         return (
-                          <Stack>
+                          <Stack spacing={1}>
                             <Toolbar
                               disableGutters
                               variant="dense"
@@ -310,8 +324,43 @@ function RouteComponent() {
                               }
                               slotProps={{
                                 htmlInput: { sx: { fontFamily: "monospace" } },
+                                input: {
+                                  endAdornment: (
+                                    <InputAdornment position="end">
+                                      <CloseIcon
+                                        sx={{ cursor: "pointer" }}
+                                        onClick={() => {
+                                          handleChange((prev) => ({
+                                            ...prev,
+                                            replacement: "",
+                                          }));
+                                        }}
+                                      />
+                                    </InputAdornment>
+                                  ),
+                                },
                               }}
                             />
+                            <Box>
+                              <QuestionDialog
+                                onSelect={(value) => {
+                                  handleChange((prev) => ({
+                                    ...prev,
+                                    replacement: value,
+                                  }));
+                                }}
+                              >
+                                {({ openDialog }) => (
+                                  <Button
+                                    variant="outlined"
+                                    onClick={openDialog}
+                                    disableTouchRipple
+                                  >
+                                    Insert from question bank
+                                  </Button>
+                                )}
+                              </QuestionDialog>
+                            </Box>
                           </Stack>
                         );
                       }}
@@ -371,7 +420,6 @@ function RouteComponent() {
                 }}
                 icon={
                   <CloseIcon
-                    component={"span"}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();

@@ -27,6 +27,7 @@
     "@tauri-apps/plugin-dialog": "~2.7.1",
     "@tauri-apps/plugin-fs": "~2.5.1",
     "@tauri-apps/plugin-opener": "^2",
+    "match-sorter": "^8.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-toastify": "^11.1.0",

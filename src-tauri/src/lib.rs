@@ -1,9 +1,8 @@
 mod commands;
 mod entities;
 mod services;
-use commands::questions::{
-    create_question, delete_question, get_question, list_questions, update_question,
-};
+mod migration;
+use commands::questions::{create_question, delete_question, list_questions, update_question};
 use commands::tex_bulk_edit::{get_marker_keys, get_tokens, replace_markers};
 use sea_orm::DatabaseConnection;
 use services::db::init_db;
@@ -32,7 +31,6 @@ pub fn run() {
             get_tokens,
             create_question,
             list_questions,
-            get_question,
             update_question,
             delete_question,
         ])

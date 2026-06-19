@@ -1,6 +1,6 @@
 [package]
 name = "project-ametrine"
-version = "0.0.1"
+version = "0.0.2"
 description = "A Tauri App"
 authors = ["Thanakorn Phuttharaksa"]
 edition = "2021"

@@ -3525,7 +3525,7 @@ dependencies = [
 
 [[package]]
 name = "project-ametrine"
-version = "0.0.2"
+version = "0.0.4"
 dependencies = [
  "sea-orm",
  "sea-orm-migration",

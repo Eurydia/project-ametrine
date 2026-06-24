@@ -16,7 +16,6 @@ import {
   type FC,
   type ReactNode,
   Suspense,
-  startTransition,
   use,
   useCallback,
   useMemo,
@@ -177,7 +176,7 @@ const QuestionBankForm: FC<{
                       {tags.length > 0 && (
                         <Stack
                           useFlexGap
-                          spacing={2}
+                          spacing={1.5}
                           direction={"row"}
                           sx={{ flexWrap: "wrap" }}
                         >

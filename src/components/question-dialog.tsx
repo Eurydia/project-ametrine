@@ -1,8 +1,8 @@
 import CloseIcon from "@mui/icons-material/Close";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -25,7 +25,7 @@ const DialogBody: FC<{
   onSelect: (value: string) => unknown;
   promise: Promise<Array<Question>>;
 }> = (props) => {
-  const items = use(props.promise);
+  const questions = use(props.promise);
   const [query, setQuery] = useState("");
   const filtered = useMemo(() => {
     const tokens = query
@@ -34,15 +34,15 @@ const DialogBody: FC<{
       .filter((t) => t.length > 0);
 
     if (tokens.length === 0) {
-      return items;
+      return questions;
     }
 
     return tokens.reduceRight(
       (results, term) =>
-        matchSorter(results, term, { keys: [(k) => k.content] }),
-      items,
+        matchSorter(results, term, { keys: [(k) => k.content, (k) => k.tags] }),
+      questions,
     );
-  }, [query, items]);
+  }, [query, questions]);
   return (
     <Stack spacing={4}>
       <TextField
@@ -66,30 +66,49 @@ const DialogBody: FC<{
           },
         }}
       />
+      <Typography>{`Found ${filtered.length} question(s)`}</Typography>
       <Stack spacing={2}>
         {filtered.length === 0 && (
-          <Typography sx={{ fontStyle: "italic" }}>
+          <Typography sx={{ fontStyle: "italic" }} variant="button">
             No question in question bank
           </Typography>
         )}
-        {filtered.map(({ content, id }) => {
+
+        {filtered.map(({ tags, content, id }) => {
           return (
             <Card key={id} variant="outlined">
               <CardContent>
-                <Stack spacing={1}>
-                  <Box>
+                <Stack spacing={2}>
+                  <Stack direction={"row"} spacing={1} useFlexGap>
                     <Button
-                      variant="outlined"
+                      variant="contained"
                       onClick={() => {
                         props.onSelect(content);
                       }}
                     >
                       Insert
                     </Button>
-                  </Box>
+                  </Stack>
                   <Typography sx={{ fontFamily: "monospace" }}>
                     {content}
                   </Typography>
+                  {tags.length > 0 && (
+                    <Stack
+                      useFlexGap
+                      spacing={1.5}
+                      direction={"row"}
+                      sx={{ flexWrap: "wrap" }}
+                    >
+                      {tags.map((tag) => (
+                        <Chip
+                          variant="outlined"
+                          color="primary"
+                          label={tag}
+                          key={tag}
+                        />
+                      ))}
+                    </Stack>
+                  )}
                 </Stack>
               </CardContent>
             </Card>

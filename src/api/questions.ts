@@ -5,9 +5,12 @@ export type Question = {
   content: string;
 };
 
-export function createQuestion(content: string) {
+export function createQuestion(value: {
+  content: string;
+  tags: Array<string>;
+}) {
   return invoke<Question>("create_question", {
-    input: { content },
+    data: value,
   });
 }
 

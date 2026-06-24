@@ -118,7 +118,12 @@ function RouteComponent() {
               useFlexGap
               sx={{ justifyContent: "space-between", flexWrap: "wrap" }}
             >
-              <Stack spacing={1} direction={"row"}>
+              <Stack
+                useFlexGap
+                spacing={1}
+                direction={"row"}
+                sx={{ flexWrap: "wrap" }}
+              >
                 <Button
                   disableTouchRipple
                   variant="contained"
@@ -219,11 +224,28 @@ function RouteComponent() {
                 )}
               </QuestionBankDialog>
             </Stack>
+            {fileArrays.length === 0 && (
+              <Typography
+                sx={{
+                  fontStyle: "italic",
+                  fontFamily: "monospace",
+                  padding: 2,
+                  textAlign: "center",
+                }}
+                color="textSecondary"
+              >
+                {`Add a file with at least one marker <<<(...)>>> to start working`}
+              </Typography>
+            )}
             <form.Field name="replacements" mode="array">
               {(f) => (
                 <Stack spacing={3}>
                   {f.state.value.map((_, i) => (
-                    <form.Field name={`replacements[${i}]`} key={i}>
+                    <form.Field
+                      name={`replacements[${i}]`}
+                      // biome-ignore lint/suspicious/noArrayIndexKey: Following pattern from tanstack docs
+                      key={i}
+                    >
                       {({ state: { value }, handleBlur, handleChange }) => {
                         return (
                           <Stack spacing={1}>

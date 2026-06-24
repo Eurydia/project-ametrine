@@ -1,9 +1,8 @@
-use std::time::Duration;
-
 use crate::migration::Migrator;
 use sea_orm::{DatabaseConnection, SqlxSqliteConnector};
 use sea_orm_migration::MigratorTrait;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous};
+use std::time::Duration;
 use tauri::Manager;
 
 pub async fn init_db(app: &tauri::App) -> Result<DatabaseConnection, String> {

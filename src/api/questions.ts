@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 export type Question = {
   id: number;
   content: string;
+  tags: Array<string>;
 };
 
 export function createQuestion(value: {
@@ -18,14 +19,18 @@ export function listQuestions() {
   return invoke<Question[]>("list_questions");
 }
 
-export function updateQuestion(id: number, content: string) {
+export function updateQuestion(value: {
+  id: number;
+  content: string;
+  tags: Array<string>;
+}) {
   return invoke<Question>("update_question", {
-    input: { id, content },
+    data: value,
   });
 }
 
 export function deleteQuestion(id: number) {
-  return invoke<void>("delete_question", {
+  return invoke<number>("delete_question", {
     id,
   });
 }

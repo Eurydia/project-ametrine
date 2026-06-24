@@ -8,11 +8,12 @@ pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
 
-    #[sea_orm(unique)]
+    pub question_id: i32,
+
     pub name: String,
 
-    #[sea_orm(has_many, via = "question_tag")]
-    pub questions: HasMany<super::question::Entity>,
+    #[sea_orm(belongs_to, from = "question_id", to = "id")]
+    pub question: HasOne<super::question::Entity>,
 }
 
 impl ActiveModelBehavior for ActiveModel {}

@@ -1,23 +1,23 @@
-import CloseIcon from "@mui/icons-material/CloseRounded";
+import CloseIcon from "@mui/icons-material/Close";
 import Autocomplete from "@mui/material/Autocomplete";
 import Button from "@mui/material/Button";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
 import { useForm } from "@tanstack/react-form";
 import { type FC, useState } from "react";
 import z from "zod/v4";
 
-export const CreateQuestionForm: FC<{
-  tagOptions: Array<string>;
-  onSubmit: (values: { content: string; tags: Array<string> }) => unknown;
+export const EditQuestion: FC<{
+  value: { tags: Array<string>; content: string };
+  tagsOptions: Array<string>;
+  onSubmit: (value: { content: string; tags: Array<string> }) => unknown;
+  onCancel: () => unknown;
 }> = (props) => {
   const [tagInputValue, setTagInputValue] = useState("");
   const form = useForm({
     defaultValues: {
-      content: "",
-      tags: [] as Array<string>,
+      ...props.value,
     },
     validators: {
       onChange: z.object({
@@ -25,46 +25,37 @@ export const CreateQuestionForm: FC<{
         tags: z.string().trim().normalize().nonempty().array(),
       }),
     },
-    onSubmit: ({ value, formApi }) => {
-      formApi.setFieldValue("content", "");
-      formApi.clearFieldValues("tags");
-      setTagInputValue("");
-      props.onSubmit(value);
+    onSubmit: async ({ value }) => {
+      return props.onSubmit(value);
     },
   });
 
   return (
     <Stack spacing={2}>
-      <Stack
-        spacing={1}
-        useFlexGap
-        direction={"row"}
-        sx={{
-          flexWrap: "wrap",
-          alignContent: "center",
-          justifyContent: "space-between",
+      <form.Subscribe
+        selector={({ canSubmit, isValid, isSubmitting }) => {
+          return { allowSubmit: canSubmit && isValid, isSubmitting };
         }}
       >
-        <Typography variant="button" sx={{ fontWeight: 700 }}>
-          Add question to question bank
-        </Typography>
-        <form.Subscribe
-          selector={({ canSubmit, isValid, isSubmitting }) => {
-            return { canSubmit, isValid, isSubmitting };
-          }}
-        >
-          {({ canSubmit, isSubmitting, isValid }) => (
+        {({ allowSubmit, isSubmitting }) => (
+          <Stack direction={"row"} spacing={1} useFlexGap>
             <Button
               variant="contained"
-              disabled={!canSubmit || isSubmitting || !isValid}
+              disabled={!allowSubmit || isSubmitting}
               onClick={form.handleSubmit}
             >
-              add
+              Save
             </Button>
-          )}
-        </form.Subscribe>
-      </Stack>
-
+            <Button
+              variant="outlined"
+              disabled={isSubmitting}
+              onClick={props.onCancel}
+            >
+              Cancel
+            </Button>
+          </Stack>
+        )}
+      </form.Subscribe>
       <form.Field name="content">
         {({ state: { value }, handleBlur, handleChange }) => (
           <TextField
@@ -102,7 +93,7 @@ export const CreateQuestionForm: FC<{
             fullWidth
             inputValue={tagInputValue}
             onInputChange={(_, v) => setTagInputValue(v)}
-            options={props.tagOptions}
+            options={props.tagsOptions}
             value={value}
             onChange={(_, values) => {
               handleChange(values);

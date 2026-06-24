@@ -34,8 +34,6 @@ export const Route = createFileRoute("/")({
   component: RouteComponent,
 });
 
-export type Path = string;
-
 function RouteComponent() {
   const [highlightedMarker, setHighlightedMarker] = useState<null | {
     marker: string;
@@ -43,7 +41,7 @@ function RouteComponent() {
   }>(null);
   const [fileLookup, setFileLookup] = useState<
     Record<
-      Path,
+      string,
       {
         fileData: { name: string; path: string };
         tokens: Array<TokenKind>;

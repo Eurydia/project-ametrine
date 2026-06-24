@@ -2,6 +2,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
+import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -10,18 +11,18 @@ import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { useForm } from "@tanstack/react-form";
-import { useQuery } from "@tanstack/react-query";
-import { matchSorter } from "match-sorter";
+import { matchSorter, rankings } from "match-sorter";
 import {
   type FC,
   type ReactNode,
   Suspense,
+  startTransition,
   use,
+  useCallback,
   useMemo,
   useState,
 } from "react";
-import z from "zod/v4";
+import { toast } from "react-toastify";
 import {
   createQuestion,
   deleteQuestion,
@@ -29,69 +30,26 @@ import {
   type Question,
   updateQuestion,
 } from "../api/questions";
+import { CreateQuestionForm } from "./forms/create-question";
+import { EditQuestion } from "./forms/edit-question";
 
-export const QuestionBankDialog: FC<{
-  children: (value: { openDialog: () => unknown }) => ReactNode;
+const QuestionBankForm: FC<{
+  questionPromise: Promise<Array<Question>>;
+  onUpdate: () => unknown;
 }> = (props) => {
-  const items = useQuery({
-    queryKey: ["questions"],
-    queryFn: listQuestions,
-  });
+  const questions = use(props.questionPromise);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const handleDelete = useCallback(
+    async (id: number) =>
+      deleteQuestion(id).then(() => {
+        toast.warn("Question removed");
+        props.onUpdate();
+      }),
+    [props.onUpdate],
+  );
 
   const [query, setQuery] = useState("");
-
-  const newQuestionForm = useForm({
-    defaultValues: {
-      content: "",
-      tags: [] as Array<string>,
-    },
-    validators: {
-      onChange: z.object({
-        content: z.string().trim().normalize().nonempty(),
-        tags: z.string().trim().normalize().nonempty().array().nonempty(),
-      }),
-    },
-    onSubmit: ({ value, formApi }) => {
-      try {
-        props.onCreate(value);
-      } finally {
-        formApi.clearFieldValues("tags");
-        formApi.setFieldValue("content", "");
-      }
-    },
-  });
-
-  const editQuestionForm = useForm({
-    defaultValues: {
-      value: null as {
-        id: number;
-        content: string;
-        tags: Array<string>;
-      } | null,
-    },
-    validators: {
-      onChange: z.object({
-        value: z
-          .object({
-            id: z.number(),
-            content: z.string().trim().normalize().nonempty(),
-            tags: z.string().trim().normalize().nonempty().array().nonempty(),
-          })
-          .nullable(),
-      }),
-    },
-    onSubmit: ({ value, formApi }) => {
-      if (value.value === null) {
-        return;
-      }
-      try {
-        props.onUpdate(value.value);
-      } finally {
-        formApi.setFieldValue("value", null);
-      }
-    },
-  });
-
   const filtered = useMemo(() => {
     const tokens = query
       .split(" ")
@@ -99,43 +57,161 @@ export const QuestionBankDialog: FC<{
       .filter((t) => t.length > 0);
 
     if (tokens.length === 0) {
-      return items;
+      return questions;
     }
 
     return tokens.reduce(
       (results, term) =>
-        matchSorter(results, term, { keys: [(k) => k.content] }),
-      items,
+        matchSorter(results, term, {
+          keys: [(k) => k.content, (k) => k.tags],
+          threshold: rankings.CONTAINS,
+        }),
+      questions,
     );
-  }, [query, items]);
+  }, [query, questions]);
 
-  const handleDelete = async (id: number) => {
-    setBusy(true);
+  const tagOptions = useMemo(() => {
+    const tags = new Set<string>();
+    for (const question of questions)
+      question.tags.forEach((tag) => {
+        tags.add(tag);
+      });
+    return Array.from(tags).toSorted((a, b) => a.localeCompare(b));
+  }, [questions]);
 
-    try {
-      await deleteQuestion(id);
+  return (
+    <Stack spacing={4} divider={<Divider flexItem />}>
+      <CreateQuestionForm
+        tagOptions={tagOptions}
+        onSubmit={(values) => {
+          createQuestion(values).then(() => {
+            toast.success("Question added");
+            props.onUpdate();
+          });
+        }}
+      />
+      <Stack spacing={2}>
+        <Typography sx={{ fontWeight: 700 }} variant="button">
+          Existing question in question bank
+        </Typography>
+        <TextField
+          placeholder="Type to search for questions"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+          }}
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <CloseIcon
+                    sx={{ cursor: "pointer" }}
+                    onClick={() => {
+                      setQuery("");
+                    }}
+                  />
+                </InputAdornment>
+              ),
+            },
+          }}
+        />
+        <Typography>{`Found ${filtered.length} question(s)`}</Typography>
+        <Stack spacing={2}>
+          {filtered.length === 0 && (
+            <Typography sx={{ fontStyle: "italic" }} variant="button">
+              No question in question bank
+            </Typography>
+          )}
 
-      if (editingId === id) {
-        setEditingId(null);
-        setEditingContent("");
-      }
+          {filtered.map(({ tags, content, id }) => {
+            const isEditing = editingId === id;
 
-      props.onRefresh();
-    } finally {
-      setBusy(false);
-    }
-  };
+            return (
+              <Card key={id} variant="outlined">
+                <CardContent>
+                  {isEditing ? (
+                    <EditQuestion
+                      value={{
+                        tags,
+                        content,
+                      }}
+                      tagsOptions={tagOptions}
+                      onSubmit={(values) => {
+                        updateQuestion({ id, ...values }).then(() => {
+                          toast.success("Changes saved");
+                          setEditingId(null);
+                          props.onUpdate();
+                        });
+                      }}
+                      onCancel={() => {
+                        setEditingId(null);
+                      }}
+                    />
+                  ) : (
+                    <Stack spacing={2}>
+                      <Stack
+                        direction={"row"}
+                        spacing={1}
+                        useFlexGap
+                        sx={{ justifyContent: "space-between" }}
+                      >
+                        <Button
+                          variant="outlined"
+                          onClick={() => {
+                            setEditingId(id);
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={() => handleDelete(id)}
+                        >
+                          Remove
+                        </Button>
+                      </Stack>
+                      <Typography sx={{ fontFamily: "monospace" }}>
+                        {content}
+                      </Typography>
+                      {tags.length > 0 && (
+                        <Stack
+                          useFlexGap
+                          spacing={2}
+                          direction={"row"}
+                          sx={{ flexWrap: "wrap" }}
+                        >
+                          {tags.map((tag) => (
+                            <Chip
+                              variant="outlined"
+                              color="primary"
+                              label={tag}
+                              key={tag}
+                            />
+                          ))}
+                        </Stack>
+                      )}
+                    </Stack>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Stack>
+      </Stack>
+    </Stack>
+  );
+};
 
+export const QuestionBankDialog: FC<{
+  children: (value: { openDialog: () => unknown }) => ReactNode;
+}> = (props) => {
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  const openDialog = () => {
-    setDialogOpen(true);
-  };
+  const [dataPromise, setDataPromise] = useState(() => listQuestions());
 
   return (
     <>
-      {props.children({ openDialog })}
-
+      {props.children({ openDialog: () => setDialogOpen(true) })}
       {dialogOpen && (
         <Dialog
           open={dialogOpen}
@@ -144,187 +220,14 @@ export const QuestionBankDialog: FC<{
           fullWidth
         >
           <DialogContent>
-            <Stack spacing={4} divider={<Divider flexItem />}>
-              <Stack spacing={2}>
-                <Stack
-                  spacing={1}
-                  useFlexGap
-                  direction={"row"}
-                  sx={{
-                    flexWrap: "wrap",
-                    alignContent: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <Typography variant="button" sx={{ fontWeight: 700 }}>
-                    Add question to question bank
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    disabled={busy || newContent.trim().length === 0}
-                    onClick={() => void handleCreate()}
-                  >
-                    add
-                  </Button>
-                </Stack>
-
-                <TextField
-                  multiline
-                  minRows={3}
-                  placeholder="Question content"
-                  value={newContent}
-                  onChange={(e) => {
-                    setNewContent(e.target.value);
-                  }}
-                  slotProps={{
-                    htmlInput: { sx: { fontFamily: "monospace" } },
-                    input: {
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <CloseIcon
-                            sx={{ cursor: "pointer" }}
-                            onClick={() => {
-                              setNewContent("");
-                            }}
-                          />
-                        </InputAdornment>
-                      ),
-                    },
-                  }}
-                />
-              </Stack>
-
-              <Stack spacing={2}>
-                <Typography sx={{ fontWeight: 700 }} variant="button">
-                  Existing question in question bank
-                </Typography>
-                <TextField
-                  placeholder="Type to search for questions"
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                  }}
-                  slotProps={{
-                    input: {
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <CloseIcon
-                            sx={{ cursor: "pointer" }}
-                            onClick={() => {
-                              setQuery("");
-                            }}
-                          />
-                        </InputAdornment>
-                      ),
-                    },
-                  }}
-                />
-                <Typography>{`Found ${filtered.length} question(s)`}</Typography>
-                <Stack spacing={2}>
-                  {filtered.length === 0 && (
-                    <Typography sx={{ fontStyle: "italic" }} variant="button">
-                      No question in question bank
-                    </Typography>
-                  )}
-
-                  {filtered.map(({ content, id }) => {
-                    const isEditing = editingId === id;
-
-                    return (
-                      <Card key={id} variant="outlined">
-                        <CardContent>
-                          <Stack spacing={2}>
-                            <Stack
-                              direction={"row"}
-                              spacing={1}
-                              useFlexGap
-                              sx={{ justifyContent: "space-between" }}
-                            >
-                              {isEditing ? (
-                                <>
-                                  <Button
-                                    variant="outlined"
-                                    disabled={
-                                      busy || editingContent.trim().length === 0
-                                    }
-                                    onClick={() => void handleUpdate(id)}
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button
-                                    variant="outlined"
-                                    disabled={busy}
-                                    onClick={() => {
-                                      setEditingId(null);
-                                      setEditingContent("");
-                                    }}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </>
-                              ) : (
-                                <>
-                                  <Button
-                                    variant="outlined"
-                                    disabled={busy}
-                                    onClick={() => {
-                                      setEditingId(id);
-                                      setEditingContent(content);
-                                    }}
-                                  >
-                                    Edit
-                                  </Button>
-                                  <Button
-                                    variant="outlined"
-                                    color="error"
-                                    disabled={busy}
-                                    onClick={() => void handleDelete(id)}
-                                  >
-                                    Remove
-                                  </Button>
-                                </>
-                              )}
-                            </Stack>
-
-                            {isEditing ? (
-                              <TextField
-                                multiline
-                                minRows={3}
-                                value={editingContent}
-                                onChange={(e) => {
-                                  setEditingContent(e.target.value);
-                                }}
-                                slotProps={{
-                                  htmlInput: {
-                                    sx: { fontFamily: "monospace" },
-                                  },
-                                  input: {
-                                    endAdornment: (
-                                      <InputAdornment position="end">
-                                        <CloseIcon
-                                          sx={{ cursor: "pointer" }}
-                                          onClick={() => {
-                                            setNewContent("");
-                                          }}
-                                        />
-                                      </InputAdornment>
-                                    ),
-                                  },
-                                }}
-                              />
-                            ) : (
-                              <Typography sx={{ fontFamily: "monospace" }}>
-                                {content}
-                              </Typography>
-                            )}
-                          </Stack>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </Stack>
-              </Stack>
-            </Stack>
+            <Suspense fallback={<CircularProgress />}>
+              <QuestionBankForm
+                questionPromise={dataPromise}
+                onUpdate={() => {
+                  setDataPromise(listQuestions);
+                }}
+              />
+            </Suspense>
           </DialogContent>
         </Dialog>
       )}

@@ -6,11 +6,12 @@ import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { matchSorter } from "match-sorter";
+import { matchSorter, rankings } from "match-sorter";
 import {
   type FC,
   type ReactNode,
@@ -39,12 +40,16 @@ const DialogBody: FC<{
 
     return tokens.reduceRight(
       (results, term) =>
-        matchSorter(results, term, { keys: [(k) => k.content, (k) => k.tags] }),
+        matchSorter(results, term, {
+          keys: [(k) => k.content, (k) => k.tags],
+          threshold: rankings.CONTAINS,
+        }),
       questions,
     );
   }, [query, questions]);
+
   return (
-    <Stack spacing={4}>
+    <Stack spacing={2}>
       <TextField
         placeholder="Type to search for questions"
         value={query}
@@ -70,7 +75,7 @@ const DialogBody: FC<{
       <Stack spacing={2}>
         {filtered.length === 0 && (
           <Typography sx={{ fontStyle: "italic" }} variant="button">
-            No question in question bank
+            {`No question found in question bank`}
           </Typography>
         )}
 
@@ -122,6 +127,7 @@ const DialogBody: FC<{
 export const QuestionDialog: FC<{
   children: (value: { openDialog: () => unknown }) => ReactNode;
   onSelect: (value: string) => unknown;
+  markerKey: string;
 }> = (props) => {
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -135,6 +141,19 @@ export const QuestionDialog: FC<{
           maxWidth="lg"
           fullWidth
         >
+          <DialogTitle>
+            {`Select a question to insert into `}
+            <Typography
+              sx={{
+                display: "inline",
+                fontFamily: "monospace",
+                fontWeight: 700,
+              }}
+              color="primary"
+            >
+              {`<<<(${props.markerKey})>>>`}
+            </Typography>
+          </DialogTitle>
           <DialogContent>
             <Suspense fallback={<CircularProgress />}>
               <DialogBody

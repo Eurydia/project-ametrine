@@ -120,13 +120,20 @@ function RouteComponent() {
               </QuestionBankDialog>
             </Stack>
             {fileArray.length === 0 && (
-              <Typography
-                color="textSecondary"
-                sx={{
-                  fontFamily: "monospace",
-                }}
-              >
-                {`Add a file with at least one marker <<<(...)>>> to start working`}
+              <Typography color="textSecondary">
+                {`Add a file with at least one marker `}
+                <Typography
+                  component={"code"}
+                  color="primary"
+                  sx={{
+                    display: "inline",
+                    fontFamily: "monospace",
+                    fontWeight: 700,
+                  }}
+                >
+                  {`<<<(...)>>>`}
+                </Typography>
+                {` to start working`}
               </Typography>
             )}
             <ReplacementGroup

@@ -176,7 +176,7 @@ const QuestionBankForm: FC<{
                       {tags.length > 0 && (
                         <Stack
                           useFlexGap
-                          spacing={1.5}
+                          spacing={1}
                           direction={"row"}
                           sx={{ flexWrap: "wrap" }}
                         >

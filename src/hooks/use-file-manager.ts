@@ -69,12 +69,13 @@ export const useFileManager = () => {
           }),
         )
       ).filter(([_, file]) => {
-        return Object.values(file.markers).some((val) => val > 0);
+        return Object.values(file.markers).some(
+          (markerCount) => markerCount > 0,
+        );
       });
 
       if (next.length < paths.length) {
         options.onMarkerlessFileIgnored();
-        return;
       }
 
       const firstFile = next.at(0);

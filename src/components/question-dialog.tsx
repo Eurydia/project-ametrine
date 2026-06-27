@@ -62,7 +62,9 @@ const DialogBody: FC<{
               <InputAdornment position="end">
                 <CloseIcon
                   sx={{ cursor: "pointer" }}
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     setQuery("");
                   }}
                 />
@@ -74,9 +76,7 @@ const DialogBody: FC<{
       <Typography>{`Found ${filtered.length} question(s)`}</Typography>
       <Stack spacing={2}>
         {filtered.length === 0 && (
-          <Typography sx={{ fontStyle: "italic" }} variant="button">
-            {`No question found in question bank`}
-          </Typography>
+          <Typography>{`No question found in question bank`}</Typography>
         )}
 
         {filtered.map(({ tags, content, id }) => {
@@ -100,7 +100,7 @@ const DialogBody: FC<{
                   {tags.length > 0 && (
                     <Stack
                       useFlexGap
-                      spacing={1.5}
+                      spacing={1}
                       direction={"row"}
                       sx={{ flexWrap: "wrap" }}
                     >

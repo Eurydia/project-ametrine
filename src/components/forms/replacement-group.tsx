@@ -42,6 +42,7 @@ export const ReplacementGroup = AppFormHook.withFieldGroup({
                         sx={{
                           justifyContent: "space-between",
                           alignItems: "center",
+                          flexWrap: "wrap",
                         }}
                       >
                         <Typography

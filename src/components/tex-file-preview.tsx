@@ -7,6 +7,7 @@ export const TexFilePreview: FC<{
     marker: string;
     order: number;
   };
+  fontSize: number;
   tokens: Array<TokenKind>;
   replacements: Record<string, string>;
 }> = (props) => {
@@ -21,13 +22,17 @@ export const TexFilePreview: FC<{
     }
   }, [props.highlight]);
   return (
-    <pre
-      style={{
+    <Typography
+      component={"pre"}
+      sx={{
         whiteSpace: "pre-wrap",
         overflowWrap: "anywhere",
         wordBreak: "break-word",
         maxWidth: "100%",
         overflowX: "hidden",
+        fontFamily: "monospace",
+        fontSize: props.fontSize,
+        color: (t) => t.lighten(t.palette.primary.main, 0.07),
       }}
     >
       {props.tokens.map((tok, i) => {
@@ -48,6 +53,7 @@ export const TexFilePreview: FC<{
               key={i}
               component="pre"
               sx={{
+                fontSize: "inherit",
                 display: "inline",
                 ...(!isHighlighted
                   ? undefined
@@ -60,6 +66,7 @@ export const TexFilePreview: FC<{
               <Typography
                 component="pre"
                 sx={{
+                  fontSize: "inherit",
                   display: "inline",
                   fontFamily: "monospace",
                   color: (t) =>
@@ -93,6 +100,6 @@ export const TexFilePreview: FC<{
         }
         return tok.content;
       })}
-    </pre>
+    </Typography>
   );
 };

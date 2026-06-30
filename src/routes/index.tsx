@@ -1,6 +1,10 @@
+import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
+import RemoveIcon from "@mui/icons-material/Remove";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
+import Fab from "@mui/material/Fab";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -15,6 +19,7 @@ import { ReplacementGroup } from "../components/forms/replacement-group";
 import { QuestionBankDialog } from "../components/question-bank-dialog";
 import { TexFilePreview } from "../components/tex-file-preview";
 import { useFileManager } from "../hooks/use-file-manager";
+import { usePreviewFontSize } from "../hooks/use-font-size-control";
 import { useHighlightManager } from "../hooks/use-highlight-manager";
 import { AppFormHook } from "../libs/form/hook";
 
@@ -41,11 +46,13 @@ function RouteComponent() {
     },
   });
 
+  const previewFontSize = usePreviewFontSize(16);
+
   useEffect(() => {
     form.setFieldValue("replacements", (prev) => {
       const nextMarkers = Array.from(
         new Set(fileArray.flatMap(({ markers }) => Object.keys(markers))),
-      );
+      ).toSorted((a, b) => a.localeCompare(b));
       const prevLookup = Object.fromEntries(
         prev.map(({ markerKey, replacement }) => [markerKey, replacement]),
       );
@@ -67,11 +74,17 @@ function RouteComponent() {
 
   return (
     <Grid container>
-      <Grid size={{ lg: 4 }}>
+      <Grid size={4}>
         <Paper
           variant="elevation"
           elevation={0}
-          sx={{ padding: 2, height: "100vh", overflow: "auto" }}
+          sx={{
+            padding: 2,
+            height: "100vh",
+            overflow: "auto",
+            scrollbarColor: (t) =>
+              `${t.darken(t.palette.background.paper, 0.42)} ${t.palette.background.paper}`,
+          }}
         >
           <Stack spacing={4}>
             <Stack
@@ -149,7 +162,15 @@ function RouteComponent() {
           </Stack>
         </Paper>
       </Grid>
-      <Grid size={{ lg: 8 }} sx={{ overflow: "auto", maxHeight: "100dvh" }}>
+      <Grid
+        size={8}
+        sx={{
+          overflow: "auto",
+          maxHeight: "100dvh",
+          scrollbarColor: (t) =>
+            `${t.darken(t.palette.background.default, 0.42)} ${t.palette.background.default}`,
+        }}
+      >
         <Tabs
           value={activeFile?.fileData.path ?? ""}
           onChange={(_, v) => changeActiveFile(v)}
@@ -190,6 +211,9 @@ function RouteComponent() {
                   minWidth: "auto",
                   flexShrink: 0,
                   borderBottom: "2px solid",
+                  textTransform: "none",
+                  fontFamily: "monospace",
+                  fontWeight: 700,
                   borderBottomColor: (t) =>
                     selected ? t.palette.primary.main : "transparent",
                   color: (t) =>
@@ -210,8 +234,51 @@ function RouteComponent() {
           })}
         </Tabs>
         <Box sx={{ padding: 2 }}>
+          <Box
+            sx={{
+              position: "fixed",
+              right: 24,
+              bottom: 24,
+              zIndex: (theme) => theme.zIndex.tooltip,
+            }}
+          >
+            <Stack spacing={1} sx={{ alignItems: "center" }}>
+              <Typography
+                component={"span"}
+                onClick={previewFontSize.resetFontSize}
+                sx={{
+                  cursor: "pointer",
+                  userSelect: "none",
+                  ":hover": {
+                    textDecorationLine: "underline",
+                  },
+                }}
+              >
+                {`${previewFontSize.zoomPercent}%`}
+              </Typography>
+              <Fab
+                disableTouchRipple
+                color="primary"
+                size="small"
+                variant="extended"
+                onClick={previewFontSize.increaseFontSize}
+              >
+                <AddIcon />
+              </Fab>
+              <Fab
+                disableTouchRipple
+                variant="extended"
+                color="primary"
+                size="small"
+                onClick={previewFontSize.decreaseFontSize}
+              >
+                <RemoveIcon />
+              </Fab>
+            </Stack>
+          </Box>
           {activeFile !== null && (
             <TexFilePreview
+              fontSize={previewFontSize.fontSize}
               highlight={highlightedMarker ?? undefined}
               tokens={activeFile.tokens}
               replacements={markerReplacements}

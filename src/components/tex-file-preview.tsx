@@ -74,14 +74,20 @@ export const TexFilePreview: FC<{
                       ? t.palette.primary.main
                       : t.palette.action.disabled,
                   fontWeight: 700,
+                  ...(replacement === ""
+                    ? undefined
+                    : {
+                        textDecorationLine: "line-through",
+                        textDecorationStyle: "solid",
+                        fontStyle: "italic",
+                      }),
                 }}
               >
                 {`<<<(${tok.key})>>>`}
               </Typography>
-
               {replacement !== "" && (
                 <>
-                  {` \u27F6 `}
+                  {`\u27F6`}
                   <Typography
                     component="pre"
                     sx={{
@@ -89,6 +95,7 @@ export const TexFilePreview: FC<{
                       fontFamily: "monospace",
                       color: (t) => t.palette.primary.main,
                       fontWeight: 700,
+                      fontSize: "inherit",
                     }}
                   >
                     {replacement}

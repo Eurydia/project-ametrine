@@ -238,7 +238,7 @@ function RouteComponent() {
               position: "fixed",
               right: 24,
               bottom: 24,
-              zIndex: (theme) => theme.zIndex.tooltip,
+              zIndex: (theme) => theme.zIndex.modal - 2,
             }}
           >
             <Stack spacing={1} sx={{ alignItems: "center" }}>

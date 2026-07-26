@@ -1,6 +1,35 @@
-# Project AMETRINE
+![](assets/images/thumbnail.png)
 
-There does not appear to have any LaTeX tool that I could find that does the bulk edit operation. In essence, the application opens one or more LaTeX document and look for a certain marker, which looks like this ``<<<(MARKER_KEY)>>>``. More specifically, the string between the open and close parentheses defines the name of that marker. Naturally, we can target and substitute these markers with a new string of our choice. TeXStudio seems to provide this functionality to a certain degree, but one for one file at a time. This particular application allows bulk substitution across multiple files. 
+> No-nonsesne bulk editor for LaTeX documents.
 
-We also get a bonus function that we could implement a question bank generator where markers are placed in a file, for example, ``<<<(Q1)>>>``, ``<<<(Q2)>>>``, and ``<<<(Q3)>>>``. We can then substitute these with concrete questions from the question bank.
+# ~Project AMETRINE
 
+Ametrine communicates via _placeholder markers_. These are a piece of text that satisfies the form `<<<(non-empty placeholder name)>>>` (read aloud as; less than symbol, less than symbol, less than symbol, open parenthesis, _placeholder name of your choice_, close parenthesis, greater than symbol, greater than symbol, greater than symbol.)
+
+Opening a document with a _placeholder marker_ will allow you replace it with a text of your choosing.
+
+> **Tips:** A document may contain more than one _placeholder markers_, and a _placeholder marker_ can appear more than once in a document, in such cases, all occurences will be replaced together.
+
+## ~Question Banks
+
+This simple system allows for a fun, but incredible, side effect - _question banks_.
+
+### ~Adding a New Question
+
+> **Tips:** Clicking the "**OPEN QUESTION BANK**" will open the following dialog where you can add, edit, or remove questions in your question bank.
+
+![](assets/images/dialog-bank-create.png)
+
+> **Tips:** You can add tags to your questions to make it easier to search for them. You can add new tags or use previous tags you have added before.
+
+### ~Inserting a Question from the Question Bank
+
+> **Tips:** Pressing the "**INSERT FROM QUESTION BANK**" will open a dialog where you can search your question bank for a question, and insert it into the chosen _placeholder marker_.
+
+![](assets/images/question-bank-insert.png)
+
+### ~Searching the Question Bank
+
+> **Tips:** Type in the searchbar to find a specific question. You can search by the tags or the content of the question itself.
+
+![](assets/images/dialog-bank-search.png)

@@ -77,7 +77,9 @@ export const CreateQuestionForm: FC<{
             }}
             onBlur={handleBlur}
             slotProps={{
-              htmlInput: { sx: { fontFamily: "monospace" } },
+              htmlInput: {
+                sx: { fontFamily: "monospace" },
+              },
               input: {
                 endAdornment: (
                   <InputAdornment position="end">

@@ -57,6 +57,9 @@ const DialogBody: FC<{
           setQuery(e.target.value);
         }}
         slotProps={{
+          htmlInput: {
+            spellCheck: "off",
+          },
           input: {
             endAdornment: (
               <InputAdornment position="end">

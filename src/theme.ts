@@ -36,6 +36,14 @@ let theme = createTheme({
       disabledBackground: "rgba(46, 33, 27, 0.12)",
     },
   },
+  components: {
+    MuiTextField: {
+      defaultProps: { autoCapitalize: "off", spellCheck: "false" },
+    },
+    MuiButton: {
+      defaultProps: { disableElevation: true, disableTouchRipple: true },
+    },
+  },
 });
 theme = responsiveFontSizes(theme);
 

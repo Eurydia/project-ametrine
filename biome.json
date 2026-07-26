@@ -16,7 +16,8 @@
     "enabled": true,
     "rules": {
       "preset": "recommended",
-      "performance": "on"
+      "performance": "on",
+      "suspicious": { "noArrayIndexKey": "off" }
     }
   },
   "javascript": {
